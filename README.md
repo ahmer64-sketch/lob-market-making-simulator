@@ -16,7 +16,7 @@ A tested price-time-priority matching engine, an event-driven market simulator, 
 
 **Headline results:**
 - **Inventory control:** Avellaneda-Stoikov cuts inventory risk by about 40× (inventory sd 50 → 1.2 lots) and earns more than every naive setting with similar P&L. The tightest naive maker earns more but swings 70× more from day to day.
-- **Queue position is the biggest modelling decision.** Ignoring it (a "fill when the price touches" simulator) overstates daily P&L by 2–3× in the simulation.
+- **Queue position is the biggest modelling decision.** Ignoring it (a "fill when the price touches" simulator) overstates daily P&L by 3–4× in the simulation.
 - **On the real BTC-USD day, no strategy makes money, even before fees.** The best is Avellaneda-Stoikov at −$104 over 20 hours. In that fast, small-tick market, adverse selection outweighs the spread captured, and queue position hardly matters.
 
 **Main limitation:**
