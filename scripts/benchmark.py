@@ -108,7 +108,7 @@ if __name__ == "__main__":
               "side for the best price, an order-id map. The replay row shows the payoff of the next steps:",
               "- **Arrays instead of objects:** price levels as a dense array over a price window (as the replay "
               "does), orders in preallocated arrays indexed by id; no per-order Python objects.",
-              "- **Compile the hot loop:** Numba (shown above) or Cython; the same logic runs one to two orders of "
+              "- **Compile the hot loop:** Numba (shown above) or Cython; here the same logic runs about two orders of "
               "magnitude faster.",
               "- **Memory layout:** intrusive linked lists per level stored in arrays, so cancels stay O(1) "
               "without dict overhead and data stays cache-friendly.",

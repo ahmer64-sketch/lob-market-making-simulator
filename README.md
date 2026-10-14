@@ -76,7 +76,7 @@ flowchart LR
 | [4. Avellaneda-Stoikov](reports/phase4_avellaneda_stoikov.md) | At γ = 1e-04: +2,711 ± 109 a day with inventory sd 1.2 lots, beating naive settings of similar P&L. Rounding quotes outward (the guide's code) or inward changes fills 3.4×. The end-of-day horizon loses inventory control at the close. |
 | [5. Realism](reports/phase5_realism.md) | Ignoring queue position: +13,115 (naive) / +8,135 (A-S) a day too optimistic. Informed traders: fills keep losing value for minutes. Latency 500 ms costs naive 5,110 a day. A 20-lot position limit cuts naive's worst drawdown from −29,164 to −976. |
 | [6. Real BTC-USD day](reports/phase6_real_data.md) | No edge even before fees; A-S −$104 vs naive −$1,103 with a limit; no-limit naive ends 41 BTC short (−$47,750) on a +4.6% trend day. |
-| [Benchmarks](reports/benchmarks.md) | Engine ~540,000 orders/s; simulator ~145,000 events/s (both plain Python); real-data replay ~47 million events/s (Numba, 200× the same loop in plain Python). |
+| [Benchmarks](reports/benchmarks.md) | Engine ~540,000–560,000 orders/s; simulator ~145,000 events/s (both plain Python); real-data replay roughly 47–101 million events/s across runs (Numba; about 233× the same loop in plain Python). Speeds vary with machine load. |
 
 ![Book heatmap](figures/phase2_book_heatmap.png)
 ![Avellaneda-Stoikov vs naive](figures/phase4_frontier.png)
