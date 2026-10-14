@@ -7,7 +7,7 @@ A price-time-priority matching engine, synthetic order flow and market-making ag
 - [x] Phase 2: Synthetic order flow: [report](reports/phase2_flow.md)
 - [x] Phase 3: Naive market maker: [report](reports/phase3_naive.md)
 - [x] Phase 4: Inventory-aware (Avellaneda-Stoikov) quotes: [report](reports/phase4_avellaneda_stoikov.md)
-- [ ] Phase 5: Realism (latency, queue position, fees, informed flow, limits)
+- [x] Phase 5: Realism (latency, queue position, fees, informed flow, limits): [report](reports/phase5_realism.md)
 - [ ] Phase 6: Replay real data (stretch)
 - [ ] Phase 7: Package
 
@@ -19,4 +19,5 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/
 .venv/bin/python scripts/run_phase2.py
 .venv/bin/python scripts/run_phase3.py
 .venv/bin/python scripts/run_phase4.py
+.venv/bin/python scripts/run_phase5.py
 ```

@@ -124,9 +124,11 @@ class OrderBook:
                      for s in (BUY, SELL))
 
     # --- order entry ----------------------------------------------------------------------
-    def limit(self, side, price, qty, owner=0, post_only=False, ioc=False):
+    def limit(self, side, price, qty, owner=0, post_only=False, ioc=False, front=False):
         """Limit order. post_only: rejected if it would trade on arrival. ioc: any part that
-        does not trade immediately is cancelled instead of resting."""
+        does not trade immediately is cancelled instead of resting. front: rest at the FRONT of its
+        price level instead of the back. Not a real order type; used only to measure how much
+        queue position matters (an 'ignore the queue' counterfactual)."""
         self._check(side, qty)
         if not isinstance(price, int):
             raise TypeError("prices are integer ticks")
@@ -138,7 +140,7 @@ class OrderBook:
         trades, left = self._match(side, qty, price, oid, owner)
         filled = qty - left
         if left and not ioc:
-            self._rest(Order(oid, side, price, left, owner, self._seq))
+            self._rest(Order(oid, side, price, left, owner, self._seq), front=front)
             return Result(oid, trades, filled, left, 0)
         return Result(None, trades, filled, 0, left)
 
@@ -198,13 +200,16 @@ class OrderBook:
                 del self.level_qty[opp][p]
         return trades, qty
 
-    def _rest(self, o):
+    def _rest(self, o, front=False):
         levels = self.levels[o.side]
         if o.price not in levels:
             levels[o.price] = {}
             self.level_qty[o.side][o.price] = 0
             heapq.heappush(self.heaps[o.side], -o.price if o.side == BUY else o.price)
-        levels[o.price][o.id] = o
+        if front:
+            levels[o.price] = {o.id: o, **levels[o.price]}
+        else:
+            levels[o.price][o.id] = o
         self.level_qty[o.side][o.price] += o.qty
         self.orders[o.id] = o
 

@@ -115,3 +115,13 @@ def test_emptied_levels_do_not_come_back_as_best_price():
     assert b.best_bid() == 100
     b.limit(BUY, 105, 2)             # level re-created later
     assert b.best_bid() == 105 and b.volume_at(BUY, 105) == 2
+
+
+def test_front_of_queue_counterfactual():
+    b = OrderBook()
+    a = b.limit(BUY, 100, 5).order_id
+    f = b.limit(BUY, 100, 2, front=True).order_id
+    c = b.limit(BUY, 100, 3).order_id
+    assert b.queue_ahead(f) == 0 and b.queue_ahead(a) == 2 and b.queue_ahead(c) == 7
+    r = b.market(SELL, 4)
+    assert [(t.maker_id, t.qty) for t in r.trades] == [(f, 2), (a, 2)]
