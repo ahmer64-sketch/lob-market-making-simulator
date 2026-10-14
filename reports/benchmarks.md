@@ -4,12 +4,12 @@ Python 3.13.2 on arm64 (Darwin), single core, best of several runs.
 
 | Engine | What is counted | Events | Seconds | **Events / second** |
 |---|---|---|---|---|
-| Matching engine (Phase 1), pure Python | limit / market / cancel orders | 300,000 | 0.55 | **542,951** |
-| Order-flow simulator (Phase 2), pure Python | events incl. flow generation | 142,304 | 0.99 | **143,862** |
-| Real-data replay (Phase 6), Numba | book updates + trades, full day | 35,206,507 | 0.75 | **47,088,848** |
-| Same replay loop, plain Python (first 1M events) | book updates + trades | 1,000,000 | 2.73 | **366,047** |
+| Matching engine (Phase 1), pure Python | limit / market / cancel orders | 300,000 | 0.54 | **557,075** |
+| Order-flow simulator (Phase 2), pure Python | events incl. flow generation | 142,304 | 0.96 | **148,794** |
+| Real-data replay (Phase 6), Numba | book updates + trades, full day | 35,206,507 | 0.35 | **101,023,737** |
+| Same replay loop, plain Python (first 1M events) | book updates + trades | 1,000,000 | 2.58 | **387,901** |
 
-Compiling the replay loop with Numba makes it **201× faster** than the same code run as plain Python.
+Compiling the replay loop with Numba makes it **222× faster** than the same code run as plain Python.
 
 ## How the matching engine could go faster
 

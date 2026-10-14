@@ -9,7 +9,7 @@ Zero-intelligence order flow in the style of Cont, Stoikov & Talreja (2010): Poi
 | Cancellation rate per resting order | 0.6 / i^0.4 per second (by distance at placement) |
 | Order size | geometric, mean 2.0 lots |
 
-Simulated: 5 days × 6.5 hours, 4,634,164 events in 30.5 s (**151,833 events/s** including flow generation). Book sampled every second.
+Simulated: 5 days × 6.5 hours, 4,634,164 events in 33.9 s (**136,779 events/s** including flow generation). Book sampled every second.
 
 ## 1. Does it look like a real book? Stylised facts
 
