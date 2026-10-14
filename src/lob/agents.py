@@ -29,8 +29,12 @@ class MarketMaker:
         self.inventory = 0
         self.orders = {BUY: None, SELL: None}      # side -> (order_id, price)
         self.fills = []                            # (time, signed qty, price, mid before)
+        self.fill_moved_mid = []                   # per fill: did the mid change on that event?
+        self.requotes = 0                          # cancel-and-replace of an existing quote
         self.path = []                             # (time, cash, inventory, mid)
         self.quotes_placed = 0
+        self.dist_sum = {BUY: 0.0, SELL: 0.0}      # quoted distance from the mid, summed over timer ticks
+        self.dist_n = {BUY: 0, SELL: 0}
         self._trade_cursor = 0
         self._record_dt = record_dt
         self._next_record = 0.0
@@ -55,6 +59,7 @@ class MarketMaker:
                 self.inventory += q
                 self.cash -= q * price
                 self.fills.append((t, q, price, mid_before))
+                self.fill_moved_mid.append(sim.book.mid() != mid_before)
                 side = BUY if q > 0 else SELL
                 oid = self.orders[side][0] if self.orders[side] else None
                 if oid is not None and oid not in sim.book.orders:
@@ -64,7 +69,11 @@ class MarketMaker:
     def _on_timer(self, sim):
         self.on_event(sim, "timer")
         bid, ask = self.quotes(sim)
+        mid = sim.book.mid()
         for side, price in ((BUY, bid), (SELL, ask)):
+            if price is not None and mid is not None:
+                self.dist_sum[side] += abs(mid - price)
+                self.dist_n[side] += 1
             current = self.orders[side]
             if current is not None and current[0] not in sim.book.orders:
                 current = self.orders[side] = None
@@ -73,6 +82,7 @@ class MarketMaker:
             if current is not None:
                 sim.book.cancel(current[0])
                 self.orders[side] = None
+                self.requotes += 1
             if price is not None:
                 res = sim.book.limit(side, int(price), self.size, owner=self.owner, post_only=True)
                 self.quotes_placed += 1
@@ -112,3 +122,54 @@ class NaiveMarketMaker(MarketMaker):
         if mid is None:
             return None, None
         return math.floor(mid - self.h), math.ceil(mid + self.h)
+
+
+class AvellanedaStoikov(MarketMaker):
+    """Avellaneda & Stoikov (2008) quotes:
+
+        reservation price  r = s - q * gamma * sigma2 * tau
+        total spread       d = gamma * sigma2 * tau + (2 / gamma) * ln(1 + gamma / k)
+        bid, ask = r -/+ d/2 rounded to ticks, then kept passive (bid < best ask, ask > best bid)
+
+    rounding="outward" (floor the bid, ceil the ask) is the guide's code starter; "nearest" rounds each
+    quote to the nearest tick. In a market whose spread is usually one tick the choice matters: a
+    continuous optimal half-spread of ~0.6 ticks becomes 1.5 ticks (one level behind the best price)
+    with outward rounding but 0.5 (joining the best price) with nearest rounding.
+
+    s: mid (ticks); q: inventory (lots); sigma2: mid variance per second (ticks^2/s); k: decay of fill
+    intensity with distance (1/ticks); gamma: risk aversion (1/tick-lots). tau is the time left to the
+    end of the day (T - t) if `end_time` is given, else the constant `tau`.
+    """
+
+    def __init__(self, gamma, sigma2, k, end_time=None, tau=None, rounding="nearest", **kw):
+        super().__init__(**kw)
+        if rounding not in ("nearest", "outward"):
+            raise ValueError(rounding)
+        self.rounding = rounding
+        if (end_time is None) == (tau is None):
+            raise ValueError("give exactly one of end_time (finite horizon) or tau (constant horizon)")
+        self.gamma, self.sigma2, self.k = gamma, sigma2, k
+        self.end_time, self.tau = end_time, tau
+
+    def horizon(self, t):
+        return max(self.end_time - t, 0.0) if self.end_time is not None else self.tau
+
+    def reservation_and_spread(self, mid, q, t):
+        tau = self.horizon(t)
+        r = mid - q * self.gamma * self.sigma2 * tau
+        d = self.gamma * self.sigma2 * tau + (2.0 / self.gamma) * math.log1p(self.gamma / self.k)
+        return r, d
+
+    def quotes(self, sim):
+        mid = sim.book.mid()
+        if mid is None:
+            return None, None
+        r, d = self.reservation_and_spread(mid, self.inventory, sim.t)
+        if self.rounding == "outward":
+            bid, ask = math.floor(r - d / 2), math.ceil(r + d / 2)
+        else:
+            bid, ask = math.floor(r - d / 2 + 0.5), math.ceil(r + d / 2 - 0.5)   # nearest tick, ties outward
+        best_bid, best_ask = sim.book.best_bid(), sim.book.best_ask()
+        bid = min(bid, best_ask - 1) if best_ask is not None else bid
+        ask = max(ask, best_bid + 1) if best_bid is not None else ask
+        return bid, ask
