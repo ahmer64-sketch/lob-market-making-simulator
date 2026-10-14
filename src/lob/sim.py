@@ -53,7 +53,8 @@ class Recorder:
     bid_qty: list = field(default_factory=list)
     ask_qty: list = field(default_factory=list)
     depth: list = field(default_factory=list)   # volume at distance 1..K from the mid (both sides summed)
-    trades: list = field(default_factory=list)  # (time, price, qty, taker_side, maker_owner, taker_owner)
+    # (time, price, qty, taker_side, maker_owner, taker_owner, mid just before the incoming order)
+    trades: list = field(default_factory=list)
 
 
 class Simulator:
@@ -119,8 +120,9 @@ class Simulator:
         side = BUY if self.rng.random() < 0.5 else SELL
         if u < self._rate_market:
             self.counts["market"] += 1
+            mid_before = self.book.mid()
             res = self.book.market(side, self._size(), owner=BACKGROUND)
-            self._record_trades(res.trades)
+            self._record_trades(res.trades, mid_before)
             return
         i = int(self.rng.choice(self.p.K, p=self._limit_probs)) + 1
         self.place_background_limit(side, i)
@@ -129,10 +131,11 @@ class Simulator:
         opp = self.book.best(-side)
         anchor = opp if opp is not None else self.ref_price + (1 if side == BUY else -1)
         price = anchor - i if side == BUY else anchor + i
+        mid_before = self.book.mid()
         res = self.book.limit(side, int(price), self._size(), owner=BACKGROUND)
         self.counts["limit"] += 1
         self.limit_distance_counts[i - 1] += 1
-        self._record_trades(res.trades)
+        self._record_trades(res.trades, mid_before)
         if res.order_id is not None:
             self.placed[res.order_id] = (self.t, i)
             self.schedule(self.t + self.rng.exponential(1.0 / self.p.theta[i - 1]), "cancel", res.order_id)
@@ -148,9 +151,10 @@ class Simulator:
                     self.schedule(self.rng.exponential(1.0 / self.p.theta[i - 1]), "cancel", res.order_id)
 
     # --- recording ----------------------------------------------------------------------
-    def _record_trades(self, trades):
+    def _record_trades(self, trades, mid_before=None):
         for tr in trades:
-            self.rec.trades.append((self.t, tr.price, tr.qty, tr.taker_side, tr.maker_owner, tr.taker_owner))
+            self.rec.trades.append((self.t, tr.price, tr.qty, tr.taker_side, tr.maker_owner, tr.taker_owner,
+                                    np.nan if mid_before is None else mid_before))
         if trades:
             self.ref_price = trades[-1].price
 
